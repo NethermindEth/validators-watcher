@@ -65,6 +65,7 @@ func main() {
 
 	// Initialize alerts sender
 	alertsSender := alerts.NewSlackAlertSender(token, channelID)
+	logrus.Info("Alerts sender initialized")
 
 	// Start validators monitoring loops
 	var wg sync.WaitGroup
@@ -79,6 +80,7 @@ func main() {
 
 	for _, target := range completeConfig.Targets {
 		wg.Add(1)
+		logrus.Info("Starting target")
 		go targetLoop(
 			&wg,
 			done,
@@ -89,7 +91,7 @@ func main() {
 			alertsChecker,
 		)
 	}
-
+	logrus.Info("Starting validators monitoring loops")
 	wg.Wait()
 }
 
@@ -144,6 +146,7 @@ func targetLoop(
 					logrus.Errorf("failed to update db: %v", err)
 					continue
 				}
+				logrus.Infof("Validators data updated, %s", validator.Pubkey)
 			}
 			if sendAlertMsg != "" {
 				// Send alert
