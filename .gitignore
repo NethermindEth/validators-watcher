@@ -23,6 +23,8 @@ go.work
 # Config files
 config.json
 config.yaml
+.env
 
 # Databases
 *.db
+.idea/

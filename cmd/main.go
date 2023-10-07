@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"github.com/joho/godotenv"
 	"os"
 	"os/signal"
 	"strings"
@@ -17,6 +18,9 @@ import (
 )
 
 func main() {
+	// Load Env variables from .dot file
+	godotenv.Load(".env")
+
 	// Parse flags
 	logLevel := flag.Uint("log-level", uint(logrus.InfoLevel), "log level")
 	configPath := flag.String("config", "config.yaml", "path to config file")
@@ -24,6 +28,10 @@ func main() {
 
 	// Set logging level
 	logrus.SetLevel(logrus.Level(*logLevel))
+
+	// Read to
+	token := os.Getenv("SLACK_AUTH_TOKEN")
+	channelID := os.Getenv("SLACK_CHANNEL_ID")
 
 	// Read config file
 	data, err := os.ReadFile(*configPath)
@@ -56,7 +64,8 @@ func main() {
 	var alertsChecker alerts.BalanceAlertsChecker
 
 	// Initialize alerts sender
-	var alertsSender alerts.SimpleAlertSender
+	alertsSender := alerts.NewSlackAlertSender(token, channelID)
+	logrus.Info("Alerts sender initialized")
 
 	// Start validators monitoring loops
 	var wg sync.WaitGroup
@@ -71,6 +80,7 @@ func main() {
 
 	for _, target := range completeConfig.Targets {
 		wg.Add(1)
+		logrus.Info("Starting target")
 		go targetLoop(
 			&wg,
 			done,
@@ -81,7 +91,7 @@ func main() {
 			alertsChecker,
 		)
 	}
-
+	logrus.Info("Starting validators monitoring loops")
 	wg.Wait()
 }
 
@@ -136,6 +146,7 @@ func targetLoop(
 					logrus.Errorf("failed to update db: %v", err)
 					continue
 				}
+				logrus.Infof("Validators data updated, %s", validator.Pubkey)
 			}
 			if sendAlertMsg != "" {
 				// Send alert
